@@ -23,7 +23,7 @@ pipeline {
 
         stage('Checkout Code') {
             steps {
-                git branch: 'master',
+                git branch: 'main',
                     url: 'https://github.com/syrine47/devopsproject.git'
                 echo "✅ Code récupéré depuis GitHub"
             }
