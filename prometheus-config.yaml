@@ -19,14 +19,14 @@ data:
               application: 'student-management'
               namespace: 'devops'
               service: 'spring-boot'
-        
+      
       # Node Exporter (System Metrics)
-          - job_name: 'node-exporter'
+      - job_name: 'node-exporter'
         static_configs:
           - targets: ['node-exporter-service.devops.svc.cluster.local:9100']
             labels:
               job: 'node-exporter'
-        
+      
       # Prometheus itself
       - job_name: 'prometheus'
         static_configs:
