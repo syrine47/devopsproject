@@ -5,13 +5,13 @@ metadata:
   labels:
     type: local
 spec:
-  storageClassName: manual
+  storageClassName: standard  # ← CHANGÉ: "manual" → "standard"
   capacity:
     storage: 1Gi
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: /mnt/data/mysql
+    path: /data/mysql  # ← CHANGÉ: "/mnt/data/mysql" → "/data/mysql"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -19,7 +19,7 @@ metadata:
   name: mysql-pvc
   namespace: devops
 spec:
-  storageClassName: manual
+  storageClassName: standard  # ← CHANGÉ: "manual" → "standard"
   accessModes:
     - ReadWriteOnce
   resources:
