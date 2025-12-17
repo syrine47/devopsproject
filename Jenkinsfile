@@ -1,10 +1,10 @@
 pipeline {
     agent any
-    
+
     tools {
         maven 'M2_HOME'
     }
-    
+
     environment {
         DOCKER_IMAGE = 'syrineabid/student-management'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
@@ -21,11 +21,47 @@ pipeline {
             }
         }
 
+        stage('Configure Git') {
+            steps {
+                script {
+                    sh '''
+                        echo "=== Configuration Git HTTP/1.1 ==="
+                        # Configurer Git pour éviter les problèmes HTTP/2
+                        git config --global http.version HTTP/1.1
+                        git config --global http.postBuffer 524288000
+                        git config --global core.compression 0
+                        git config --global http.lowSpeedLimit 0
+                        git config --global http.lowSpeedTime 999999
+
+                        # Vérifier la configuration
+                        echo "Configuration Git actuelle:"
+                        git config --global --list | grep http || true
+                        echo "✅ Git configuré pour HTTP/1.1"
+                    '''
+                }
+            }
+        }
+
         stage('Checkout Code') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/syrine47/devopsproject.git'
-                echo "✅ Code récupéré depuis GitHub"
+                script {
+                    checkout([
+                        $class: 'GitSCM',
+                        branches: [[name: '*/main']],
+                        extensions: [
+                            [$class: 'CloneOption',
+                             depth: 1,
+                             noTags: true,
+                             shallow: true,
+                             timeout: 120]
+                        ],
+                        userRemoteConfigs: [[
+                            url: 'https://github.com/syrine47/devopsproject.git',
+                            credentialsId: '83e3741f-1706-4b46-86d6-7e3859197b98'
+                        ]]
+                    ])
+                    echo "✅ Code récupéré depuis GitHub"
+                }
             }
         }
 
@@ -191,9 +227,9 @@ pipeline {
                         echo "Attente démarrage Spring Boot..."
                         sleep 20
 
-                        # Vérifier
+                        # Vérifier (correction de l'erreur --timeout)
                         echo "Pods Spring Boot:"
-                        kubectl get pods -l app=spring-boot-app -n ${env.K8S_NAMESPACE} --watch --timeout=30s || true
+                        timeout 30s kubectl get pods -l app=spring-boot-app -n ${env.K8S_NAMESPACE} --watch || true
 
                         echo "✅ Spring Boot déployé"
                     """
