@@ -6,7 +6,7 @@ pipeline {
     }
     
     environment {
-        DOCKER_IMAGE = 'malekmouelhi7/student-management'
+        DOCKER_IMAGE = 'syrineabid/student-management'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         K8S_NAMESPACE = 'devops'
         SONARQUBE_URL = 'http://localhost:9000'
@@ -24,7 +24,7 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 git branch: 'master',
-                    url: 'https://github.com/Malekmouelh/jenkins.git'
+                    url: 'https://github.com/syrine47/devopsproject.git'
                 echo "✅ Code récupéré depuis GitHub"
             }
         }
@@ -183,7 +183,7 @@ pipeline {
                         export KUBECONFIG=/var/lib/jenkins/.kube/config
 
                         # Mettre à jour l'image dans le YAML
-                        sed -i 's|image:.*malekmouelhi7/student-management.*|image: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}|g' spring-deployment.yaml
+                        sed -i 's|image:.*syrineabid/student-management.*|image: ${env.DOCKER_IMAGE}:${env.DOCKER_TAG}|g' spring-deployment.yaml
 
                         # Déployer
                         kubectl apply -f spring-deployment.yaml -n ${env.K8S_NAMESPACE}
