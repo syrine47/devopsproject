@@ -21,9 +21,9 @@ data:
               service: 'spring-boot'
         
       # Node Exporter (System Metrics)
-      - job_name: 'node-exporter'
+          - job_name: 'node-exporter'
         static_configs:
-          - targets: ['node-exporter.devops.svc.cluster.local:9100']
+          - targets: ['node-exporter-service.devops.svc.cluster.local:9100']
             labels:
               job: 'node-exporter'
         
