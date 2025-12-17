@@ -1,64 +1,61 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: kube-state-metrics
-  namespace: devops
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: kube-state-metrics
-  template:
-    metadata:
-      labels:
-        app: kube-state-metrics
-    spec:
-      serviceAccountName: kube-state-metrics
-      containers:
-        - name: kube-state-metrics
-          image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.9.2
-          ports:
-            - containerPort: 8080
----
 apiVersion: v1
-kind: ServiceAccount
+kind: ConfigMap
 metadata:
-  name: kube-state-metrics
+  name: prometheus-config
   namespace: devops
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: kube-state-metrics
-rules:
-  - apiGroups: [""]
-    resources: ["*"]
-    verbs: ["list", "watch"]
-  - apiGroups: ["apps"]
-    resources: ["*"]
-    verbs: ["list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: kube-state-metrics
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: kube-state-metrics
-subjects:
-  - kind: ServiceAccount
-    name: kube-state-metrics
-    namespace: devops
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: kube-state-metrics
-  namespace: devops
-spec:
-  selector:
-    app: kube-state-metrics
-  ports:
-    - port: 8080
-      targetPort: 8080
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      # Spring Boot Application
+      - job_name: 'spring-boot'
+        metrics_path: '/student/actuator/prometheus'
+        static_configs:
+          - targets: ['spring-service.devops.svc.cluster.local:80']
+            labels:
+              application: 'student-management'
+              namespace: 'devops'
+              service: 'spring-boot'
+      
+      # Node Exporter (System Metrics)
+      - job_name: 'node-exporter'
+        static_configs:
+          - targets: ['node-exporter.devops.svc.cluster.local:9100']
+            labels:
+              job: 'node-exporter'
+      
+      # Prometheus itself
+      - job_name: 'prometheus'
+        static_configs:
+          - targets: ['localhost:9090']
+            labels:
+              job: 'prometheus'
+      
+      # Kubernetes cAdvisor (Container Metrics) - CORRIGÉ
+      - job_name: 'kubernetes-cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          insecure_skip_verify: true  # Gardez cette ligne pour ignorer les erreurs de certificat
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          # Cette règle conserve l'adresse __address__ comme l'hôte:port du nœud
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          # Cette règle définit le chemin des métriques sur /metrics/cadvisor
+          - source_labels: [__address__]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /metrics/cadvisor
+          # Cette règle définit l'instance sur le nom du nœud
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: instance
+      
+      # Kube State Metrics (Kubernetes Object State)  <-- NOUVEAU JOB
+      - job_name: 'kube-state-metrics'
+        static_configs:
+          - targets: ['kube-state-metrics.devops.svc.cluster.local:8080']
